@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.tailwindcss.com"></script>
+<title>Sign Up - SkillForge</title>
+</head>
+
+<body class="bg-[#0F0F1A] flex items-center justify-center h-screen text-white">
+
+<div class="bg-[#1E1E2F] p-8 rounded-2xl border border-purple-800 w-96 text-center">
+
+  <img src="assets/logo.png" class="w-16 mx-auto mb-3">
+  <h2 class="text-2xl font-bold text-purple-400 mb-6">Create Account</h2>
+
+  <div id="errorMsg" class="hidden mb-3 text-red-400 text-sm bg-red-900/30 py-2 px-3 rounded-lg"></div>
+
+  <input id="name" placeholder="Full Name"
+    class="w-full mb-3 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500">
+
+  <input id="email" type="email" placeholder="Email"
+    class="w-full mb-3 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500">
+
+  <input id="password" type="password" placeholder="Password"
+    class="w-full mb-4 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500">
+
+  <button id="signupBtn" onclick="signup()"
+    class="w-full bg-gradient-to-r from-purple-500 to-pink-500 py-2 rounded-lg hover:opacity-90 transition">
+    Sign Up
+  </button>
+
+  <p class="mt-4 text-sm">
+    Already have an account?
+    <a href="login.html" class="text-purple-400">Login</a>
+  </p>
+
+</div>
+
+<script>
+const API = "http://localhost:5000/api";
+
+async function signup() {
+  const name     = document.getElementById("name").value.trim();
+  const email    = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const errBox   = document.getElementById("errorMsg");
+  const btn      = document.getElementById("signupBtn");
+
+  errBox.classList.add("hidden");
+
+  if (!name || !email || !password) {
+    errBox.textContent = "All fields are required.";
+    errBox.classList.remove("hidden");
+    return;
+  }
+
+  btn.textContent = "Creating account...";
+  btn.disabled = true;
+
+  try {
+    const res  = await fetch(`${API}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errBox.textContent = data.error || "Registration failed.";
+      errBox.classList.remove("hidden");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user",  JSON.stringify(data.user));
+    window.location.href = "index.html";
+
+  } catch (err) {
+    errBox.textContent = "Cannot reach server. Is the backend running?";
+    errBox.classList.remove("hidden");
+  } finally {
+    btn.textContent = "Sign Up";
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Enter") signup(); });
+</script>
+</body>
+</html>

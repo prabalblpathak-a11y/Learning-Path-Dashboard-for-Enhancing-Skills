@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.tailwindcss.com"></script>
+<title>Login - SkillForge</title>
+</head>
+
+<body class="bg-[#0F0F1A] flex items-center justify-center h-screen text-white">
+
+<div class="bg-[#1E1E2F] p-8 rounded-2xl border border-purple-800 w-96 text-center">
+
+  <img src="assets/logo.png" class="w-16 mx-auto mb-3">
+  <h2 class="text-2xl font-bold text-purple-400 mb-6">SkillForge</h2>
+
+  <div id="errorMsg" class="hidden mb-3 text-red-400 text-sm bg-red-900/30 py-2 px-3 rounded-lg"></div>
+
+  <input id="email" type="email" placeholder="Email"
+    class="w-full mb-3 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500">
+
+  <input id="password" type="password" placeholder="Password"
+    class="w-full mb-4 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500">
+
+  <button id="loginBtn" onclick="login()"
+    class="w-full bg-purple-600 py-2 rounded-lg hover:bg-purple-700 transition">
+    Login
+  </button>
+
+  <p class="mt-4 text-sm">
+    Don't have an account?
+    <a href="signup.html" class="text-purple-400">Sign Up</a>
+  </p>
+
+</div>
+
+<script>
+const API = "http://localhost:5000/api";
+
+async function login() {
+  const email    = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const errBox   = document.getElementById("errorMsg");
+  const btn      = document.getElementById("loginBtn");
+
+  errBox.classList.add("hidden");
+
+  if (!email || !password) {
+    errBox.textContent = "Please enter email and password.";
+    errBox.classList.remove("hidden");
+    return;
+  }
+
+  btn.textContent = "Logging in...";
+  btn.disabled = true;
+
+  try {
+    const res  = await fetch(`${API}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errBox.textContent = data.error || "Login failed.";
+      errBox.classList.remove("hidden");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user",  JSON.stringify(data.user));
+    const dest = sessionStorage.getItem("redirectAfterLogin") || "index.html";
+    sessionStorage.removeItem("redirectAfterLogin");
+    window.location.href = dest;
+
+  } catch (err) {
+    errBox.textContent = "Cannot reach server. Is the backend running?";
+    errBox.classList.remove("hidden");
+  } finally {
+    btn.textContent = "Login";
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.tailwindcss.com"></script>
+<title>Courses - SkillForge</title>
+<style>
+.nav-item { display:flex; gap:10px; padding:10px; border-radius:10px; transition:all 0.3s ease; }
+.nav-item:hover { background:rgba(168,85,247,0.15); color:#a855f7; transform:translateX(5px); }
+.active { background:linear-gradient(to right,#7c3aed,#ec4899); color:white !important; box-shadow:0 0 15px rgba(168,85,247,0.6); }
+</style>
+</head>
+<body class="bg-[#0F0F1A] text-white">
+<div class="flex h-screen">
+
+  <!-- Sidebar -->
+  <div class="w-64 bg-[#151528] p-6 border-r border-purple-800 flex-shrink-0">
+    <div class="flex items-center gap-3 mb-10">
+      <img src="assets/logo.png" class="w-10 h-10 rounded-full border border-purple-500">
+      <h2 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">SkillForge</h2>
+    </div>
+    <ul class="space-y-3 text-gray-400">
+      <li><a href="index.html"     class="nav-item">🏠 Dashboard</a></li>
+      <li><a href="courses.html"   class="nav-item active">📚 Courses</a></li>
+      <li><a href="analytics.html" class="nav-item">📊 Analytics</a></li>
+      <li><a href="profile.html"   class="nav-item">👤 Profile</a></li>
+      <li><a href="settings.html"  class="nav-item">⚙️ Settings</a></li>
+    </ul>
+  </div>
+
+  <!-- Main -->
+  <div class="flex-1 p-8 overflow-y-auto">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl text-purple-300">📚 Courses</h1>
+      <div class="flex gap-3">
+        <select id="filterLevel" onchange="loadCourses()" class="bg-[#1E1E2F] border border-purple-800 px-3 py-2 rounded-lg text-sm">
+          <option value="">All Levels</option>
+          <option>Beginner</option>
+          <option>Intermediate</option>
+          <option>Advanced</option>
+        </select>
+        <button onclick="openModal()" class="bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg">➕ Add Course</button>
+      </div>
+    </div>
+
+    <div id="courseGrid" class="grid grid-cols-3 gap-6">
+      <p class="text-gray-400 col-span-3">Loading...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="courseModal" class="fixed inset-0 bg-black bg-opacity-60 items-center justify-center" style="display:none">
+  <div class="bg-[#1E1E2F] p-6 rounded-2xl w-96 border border-purple-800">
+    <h2 class="text-xl text-purple-300 mb-4">Add Course</h2>
+    <input id="courseName" placeholder="Course Name" class="w-full mb-3 px-3 py-2 bg-black border border-purple-800 rounded">
+    <select id="courseLevel" class="w-full mb-3 px-3 py-2 bg-black border border-purple-800 rounded">
+      <option>Beginner</option>
+      <option>Intermediate</option>
+      <option>Advanced</option>
+    </select>
+    <input id="courseDesc" placeholder="Description (optional)" class="w-full mb-3 px-3 py-2 bg-black border border-purple-800 rounded">
+    <button onclick="addCourse()" class="w-full bg-purple-600 py-2 rounded mb-2">Add & Enrol</button>
+    <button onclick="closeModal()" class="w-full bg-gray-600 py-2 rounded">Cancel</button>
+  </div>
+</div>
+
+<script>
+const API   = "http://localhost:5000/api";
+const token = localStorage.getItem("token");
+if (!token) window.location.href = "login.html";
+
+function authHeader() { return { "Authorization": `Bearer ${token}` }; }
+function openModal()  { document.getElementById("courseModal").style.display = "flex"; }
+function closeModal() { document.getElementById("courseModal").style.display = "none"; }
+
+async function loadCourses() {
+  const level = document.getElementById("filterLevel").value;
+  const url   = level ? `${API}/courses/my` : `${API}/courses/my`;
+
+  const res     = await fetch(url, { headers: authHeader() });
+  const courses = await res.json();
+  const grid    = document.getElementById("courseGrid");
+
+  const filtered = level ? courses.filter(c => c.level === level) : courses;
+
+  if (!filtered.length) {
+    grid.innerHTML = "<p class='text-gray-500 col-span-3'>No courses found. Add one!</p>";
+    return;
+  }
+
+  grid.innerHTML = filtered.map(c => `
+    <div class="bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800 hover:border-purple-500 transition">
+      <div class="flex justify-between items-start mb-2">
+        <h2 class="text-xl font-semibold">${c.course_title}</h2>
+        <span class="text-xs px-2 py-1 rounded-full ${levelColor(c.level)}">${c.level}</span>
+      </div>
+      <div class="bg-gray-700 h-2 mt-3 rounded">
+        <div class="bg-purple-500 h-2 rounded transition-all" style="width:${c.progress}%"></div>
+      </div>
+      <div class="flex justify-between mt-2 text-xs text-gray-400">
+        <span>${c.progress}% complete</span>
+        <span>${c.status}</span>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <input type="number" id="prog_${c.course_id}" min="0" max="100" value="${c.progress}"
+          class="w-20 bg-black border border-purple-800 px-2 py-1 rounded text-sm">
+        <button onclick="updateProgress(${c.course_id})"
+          class="bg-purple-600 px-3 py-1 rounded text-sm hover:bg-purple-700">Update</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function levelColor(level) {
+  if (level === "Beginner")     return "bg-green-900 text-green-300";
+  if (level === "Intermediate") return "bg-yellow-900 text-yellow-300";
+  return "bg-red-900 text-red-300";
+}
+
+async function addCourse() {
+  const title = document.getElementById("courseName").value.trim();
+  const level = document.getElementById("courseLevel").value;
+  const desc  = document.getElementById("courseDesc").value.trim();
+  if (!title) return;
+
+  const createRes = await fetch(`${API}/courses/`, {
+    method: "POST",
+    headers: { ...authHeader(), "Content-Type": "application/json" },
+    body: JSON.stringify({ title, level, description: desc })
+  });
+  const course = await createRes.json();
+  await fetch(`${API}/courses/${course.id}/enrol`, { method: "POST", headers: authHeader() });
+
+  document.getElementById("courseName").value = "";
+  document.getElementById("courseDesc").value  = "";
+  closeModal();
+  loadCourses();
+}
+
+async function updateProgress(courseId) {
+  const val = parseInt(document.getElementById(`prog_${courseId}`).value);
+  if (isNaN(val) || val < 0 || val > 100) return alert("Progress must be 0-100");
+
+  await fetch(`${API}/courses/${courseId}/progress`, {
+    method: "PATCH",
+    headers: { ...authHeader(), "Content-Type": "application/json" },
+    body: JSON.stringify({ progress: val })
+  });
+  loadCourses();
+}
+
+loadCourses();
+</script>
+</body>
+</html>

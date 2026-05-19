@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.tailwindcss.com"></script>
+<title>Settings - SkillForge</title>
+<style>
+.nav-item { display:flex; gap:10px; padding:10px; border-radius:10px; transition:all 0.3s ease; }
+.nav-item:hover { background:rgba(168,85,247,0.15); color:#a855f7; transform:translateX(5px); }
+.active { background:linear-gradient(to right,#7c3aed,#ec4899); color:white !important; box-shadow:0 0 15px rgba(168,85,247,0.6); }
+</style>
+</head>
+<body class="bg-[#0F0F1A] text-white">
+<div class="flex h-screen">
+
+  <!-- Sidebar -->
+  <div class="w-64 bg-[#151528] p-6 border-r border-purple-800 flex-shrink-0">
+    <div class="flex items-center gap-3 mb-10">
+      <img src="assets/logo.png" class="w-10 h-10 rounded-full border border-purple-500">
+      <h2 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">SkillForge</h2>
+    </div>
+    <ul class="space-y-3 text-gray-400">
+      <li><a href="index.html"     class="nav-item">🏠 Dashboard</a></li>
+      <li><a href="courses.html"   class="nav-item">📚 Courses</a></li>
+      <li><a href="analytics.html" class="nav-item">📊 Analytics</a></li>
+      <li><a href="profile.html"   class="nav-item">👤 Profile</a></li>
+      <li><a href="settings.html"  class="nav-item active">⚙️ Settings</a></li>
+    </ul>
+  </div>
+
+  <!-- Main -->
+  <div class="flex-1 p-8 overflow-y-auto">
+    <h1 class="text-3xl text-purple-300 mb-8">⚙️ Settings</h1>
+
+    <!-- Success / Error banner -->
+    <div id="banner" class="hidden mb-6 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+    <!-- Profile Settings -->
+    <div class="bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800 mb-6 max-w-lg">
+      <h2 class="text-purple-300 text-lg font-semibold mb-4">👤 Profile</h2>
+
+      <label class="text-gray-400 text-sm">Full Name</label>
+      <input id="settingName" placeholder="Your name"
+        class="w-full mb-4 mt-1 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500">
+
+      <label class="text-gray-400 text-sm">Bio</label>
+      <textarea id="settingBio" placeholder="Tell us about yourself..." rows="3"
+        class="w-full mb-4 mt-1 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500 resize-none"></textarea>
+
+      <label class="text-gray-400 text-sm">Avatar URL</label>
+      <input id="settingAvatar" placeholder="https://example.com/avatar.jpg"
+        class="w-full mb-4 mt-1 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500">
+    </div>
+
+    <!-- Password Settings -->
+    <div class="bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800 mb-6 max-w-lg">
+      <h2 class="text-purple-300 text-lg font-semibold mb-4">🔒 Change Password</h2>
+
+      <label class="text-gray-400 text-sm">New Password</label>
+      <input id="settingPassword" type="password" placeholder="Leave blank to keep current"
+        class="w-full mb-4 mt-1 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500">
+
+      <label class="text-gray-400 text-sm">Confirm Password</label>
+      <input id="settingPasswordConfirm" type="password" placeholder="Repeat new password"
+        class="w-full mt-1 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500">
+    </div>
+
+    <!-- Daily Goal -->
+    <div class="bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800 mb-8 max-w-lg">
+      <h2 class="text-purple-300 text-lg font-semibold mb-4">🎯 Daily Goal</h2>
+
+      <label class="text-gray-400 text-sm">Target study hours per day</label>
+      <input id="settingGoal" type="number" min="0.5" max="24" step="0.5" placeholder="e.g. 2"
+        class="w-full mt-1 px-3 py-2 bg-black border border-purple-800 rounded focus:outline-none focus:border-purple-500">
+    </div>
+
+    <!-- Save Button -->
+    <div class="max-w-lg flex gap-4">
+      <button id="saveBtn" onclick="saveSettings()"
+        class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 py-2 rounded-lg hover:opacity-90 transition font-semibold">
+        Save Changes
+      </button>
+      <button onclick="logout()"
+        class="px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition">
+        Logout
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API   = "http://localhost:5000/api";
+const token = localStorage.getItem("token");
+if (!token) window.location.href = "login.html";
+
+function authHeader() { return { "Authorization": `Bearer ${token}` }; }
+
+// ── Load current profile into fields ───────────────────
+async function loadSettings() {
+  const res  = await fetch(`${API}/users/me`, { headers: authHeader() });
+  const user = await res.json();
+
+  document.getElementById("settingName").value   = user.name        || "";
+  document.getElementById("settingBio").value    = user.bio         || "";
+  document.getElementById("settingAvatar").value = user.avatar_url  || "";
+  document.getElementById("settingGoal").value   = user.daily_goal_hours || 2;
+}
+
+// ── Save all settings ───────────────────────────────────
+async function saveSettings() {
+  const name     = document.getElementById("settingName").value.trim();
+  const bio      = document.getElementById("settingBio").value.trim();
+  const avatar   = document.getElementById("settingAvatar").value.trim();
+  const goal     = parseFloat(document.getElementById("settingGoal").value);
+  const password = document.getElementById("settingPassword").value;
+  const confirm  = document.getElementById("settingPasswordConfirm").value;
+  const btn      = document.getElementById("saveBtn");
+
+  // Validate password match
+  if (password && password !== confirm) {
+    showBanner("Passwords do not match.", "error");
+    return;
+  }
+
+  const payload = { name, bio, avatar_url: avatar };
+  if (!isNaN(goal) && goal > 0) payload.daily_goal_hours = goal;
+  if (password) payload.password = password;
+
+  btn.textContent = "Saving...";
+  btn.disabled    = true;
+
+  try {
+    const res  = await fetch(`${API}/users/me`, {
+      method: "PUT",
+      headers: { ...authHeader(), "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showBanner(data.error || "Failed to save.", "error");
+      return;
+    }
+
+    // Update local storage with fresh user data
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    // Clear password fields
+    document.getElementById("settingPassword").value        = "";
+    document.getElementById("settingPasswordConfirm").value = "";
+
+    showBanner("✅ Settings saved successfully!", "success");
+  } catch (err) {
+    showBanner("Cannot reach server. Is the backend running?", "error");
+  } finally {
+    btn.textContent = "Save Changes";
+    btn.disabled    = false;
+  }
+}
+
+function showBanner(msg, type) {
+  const banner = document.getElementById("banner");
+  banner.textContent = msg;
+  banner.className   = type === "success"
+    ? "mb-6 px-4 py-3 rounded-lg text-sm font-medium bg-green-900/50 text-green-300 border border-green-700"
+    : "mb-6 px-4 py-3 rounded-lg text-sm font-medium bg-red-900/50 text-red-300 border border-red-700";
+  banner.classList.remove("hidden");
+  setTimeout(() => banner.classList.add("hidden"), 4000);
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  window.location.href = "login.html";
+}
+
+loadSettings();
+</script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SkillForge - Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.card { transition: all 0.3s ease; }
+.card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 0 25px rgba(168,85,247,0.7); }
+.nav-item { display:flex; gap:10px; padding:10px; border-radius:10px; transition:all 0.3s ease; }
+.nav-item:hover { background:rgba(168,85,247,0.15); color:#a855f7; transform:translateX(5px); }
+.active { background:linear-gradient(to right,#7c3aed,#ec4899); color:white !important; box-shadow:0 0 15px rgba(168,85,247,0.6); }
+</style>
+</head>
+
+<body class="bg-[#0F0F1A] text-white">
+<div class="flex h-screen">
+
+  <!-- SIDEBAR -->
+  <div class="w-64 bg-[#151528]/80 backdrop-blur-xl p-6 border-r border-purple-800 flex-shrink-0">
+    <div class="flex items-center gap-3 mb-10 group cursor-pointer">
+      <div class="w-10 h-10 rounded-full overflow-hidden border border-purple-500 shadow-lg shadow-purple-500/30 group-hover:scale-110 group-hover:shadow-purple-500/80 transition duration-300">
+        <img src="assets/logo.png" class="w-full h-full object-cover">
+      </div>
+      <h2 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">SkillForge</h2>
+    </div>
+    <ul class="space-y-3 text-gray-400" id="navMenu">
+      <li><a href="index.html"     class="nav-item">🏠 Dashboard</a></li>
+      <li><a href="courses.html"   class="nav-item">📚 Courses</a></li>
+      <li><a href="analytics.html" class="nav-item">📊 Analytics</a></li>
+      <li><a href="profile.html"   class="nav-item">👤 Profile</a></li>
+      <li><a href="settings.html"  class="nav-item">⚙️ Settings</a></li>
+    </ul>
+  </div>
+
+  <!-- MAIN -->
+  <div class="flex-1 p-8 overflow-y-auto">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold text-purple-300">Welcome Back, <span id="userName">...</span> 👋</h1>
+      <div class="flex gap-3">
+        <input placeholder="Search..." class="bg-[#1E1E2F] px-4 py-2 rounded-lg border border-purple-800">
+        <button onclick="logout()" class="bg-gray-700 px-4 py-2 rounded-lg hover:bg-gray-600 transition">Logout</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-4 gap-6 mb-8">
+      <div class="card bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800">
+        <p class="text-gray-400">Courses</p>
+        <h2 id="statCourses" class="text-3xl text-purple-400">—</h2>
+      </div>
+      <div class="card bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800">
+        <p class="text-gray-400">Progress</p>
+        <h2 id="statProgress" class="text-3xl text-green-400">—</h2>
+      </div>
+      <div class="card bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800">
+        <p class="text-gray-400">XP</p>
+        <h2 id="statXP" class="text-3xl text-pink-400">—</h2>
+      </div>
+      <div class="card bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800">
+        <p class="text-gray-400">Streak</p>
+        <h2 id="statStreak" class="text-3xl text-yellow-400">—</h2>
+      </div>
+    </div>
+
+    <!-- Chart + Daily Goal -->
+    <div class="grid grid-cols-3 gap-6 mb-8">
+      <div class="bg-[#1E1E2F] p-5 rounded-2xl border border-purple-800 col-span-2">
+        <h2 class="mb-3 text-purple-300">📊 Weekly Activity</h2>
+        <canvas id="chart"></canvas>
+      </div>
+      <div class="bg-gradient-to-br from-purple-600 to-pink-500 p-5 rounded-2xl">
+        <h2>🎯 Daily Goal</h2>
+        <p id="goalText">— / — hours</p>
+        <div class="bg-white/30 h-2 rounded mt-2">
+          <div id="goalBar" class="bg-white h-2 rounded" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Courses -->
+    <div id="coursesSection">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl text-purple-300">📚 My Courses</h1>
+        <button onclick="openModal()" class="bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg">➕ Add Course</button>
+      </div>
+      <div id="courseContainer" class="grid grid-cols-3 gap-6">
+        <p class="text-gray-400 col-span-3">Loading courses...</p>
+      </div>
+    </div>
+
+    <!-- Achievements + Activity -->
+    <div class="grid grid-cols-2 gap-6 mt-10">
+      <div class="bg-[#1E1E2F] p-5 rounded-2xl border border-purple-800">
+        <h2 class="text-purple-300 mb-3">🏆 Achievements</h2>
+        <div id="achievementsContainer" class="flex gap-4 flex-wrap"></div>
+      </div>
+      <div class="bg-[#1E1E2F] p-5 rounded-2xl border border-purple-800">
+        <h2 class="text-purple-300 mb-3">⏳ Activity</h2>
+        <ul id="activityList" class="text-gray-400 text-sm space-y-1"></ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ADD COURSE MODAL -->
+<div id="courseModal" class="fixed inset-0 bg-black bg-opacity-60 items-center justify-center" style="display:none">
+  <div class="bg-[#1E1E2F] p-6 rounded-2xl w-96 border border-purple-800">
+    <h2 class="text-purple-300 mb-4">Add Course</h2>
+    <input id="courseName" placeholder="Course Name" class="w-full mb-3 px-3 py-2 bg-black border border-purple-800 rounded">
+    <select id="courseLevel" class="w-full mb-3 px-3 py-2 bg-black border border-purple-800 rounded">
+      <option>Beginner</option>
+      <option>Intermediate</option>
+      <option>Advanced</option>
+    </select>
+    <button onclick="addCourse()" class="w-full bg-purple-600 py-2 rounded mb-2">Add</button>
+    <button onclick="closeModal()" class="w-full bg-gray-600 py-2 rounded">Cancel</button>
+  </div>
+</div>
+
+<!-- Chatbot -->
+<div id="chatBtn" class="fixed bottom-6 right-6 bg-purple-600 w-14 h-14 flex items-center justify-center rounded-full cursor-pointer text-2xl">🤖</div>
+<div id="chatBox" class="fixed bottom-24 right-6 w-80 bg-[#1E1E2F] hidden rounded-2xl overflow-hidden">
+  <div class="bg-purple-600 p-3 flex justify-between items-center"><span>AI Assistant</span><button onclick="toggleChat()">✖</button></div>
+  <div id="chatMessages" class="p-3 h-40 overflow-y-auto text-sm space-y-1"></div>
+  <div class="flex p-2 gap-2">
+    <input id="chatInput" class="flex-1 bg-black px-2 rounded" placeholder="Ask something...">
+    <button onclick="sendMessage()" class="bg-purple-600 px-3 rounded">Send</button>
+  </div>
+</div>
+
+<script>
+const API   = "http://localhost:5000/api";
+const token = localStorage.getItem("token");
+
+// Redirect to login if not authenticated
+if (!token) {
+  // Store intended destination so login can redirect back
+  sessionStorage.setItem("redirectAfterLogin", "index.html");
+  window.location.href = "login.html";
+}
+
+// Active nav
+document.querySelectorAll(".nav-item").forEach(link => {
+  const page = window.location.pathname.split("/").pop() || "index.html";
+  if (link.getAttribute("href") === page) link.classList.add("active");
+});
+
+// ── Load dashboard data ─────────────────────────────────
+async function loadDashboard() {
+  try {
+    const res  = await fetch(`${API}/users/me/dashboard`, { headers: authHeader() });
+    const data = await res.json();
+
+    document.getElementById("statCourses").textContent  = data.courses_enrolled;
+    document.getElementById("statProgress").textContent = data.avg_progress + "%";
+    document.getElementById("statXP").textContent       = data.xp;
+    document.getElementById("statStreak").textContent   = data.streak + " 🔥";
+
+    // Daily goal
+    const pct = data.target_hours > 0
+      ? Math.min(100, Math.round((data.today_hours / data.target_hours) * 100))
+      : 0;
+    document.getElementById("goalText").textContent = `${data.today_hours} / ${data.target_hours} hours`;
+    document.getElementById("goalBar").style.width  = pct + "%";
+
+    // Achievements
+    const achBox = document.getElementById("achievementsContainer");
+    achBox.innerHTML = data.achievements.length
+      ? data.achievements.map(a => `<div title="${a.name}" class="bg-purple-800 p-3 rounded-lg text-xl">${a.icon}</div>`).join("")
+      : "<p class='text-gray-500 text-sm'>No achievements yet</p>";
+
+    // Activity list
+    const actList = document.getElementById("activityList");
+    actList.innerHTML = `
+      <li>✅ ${data.courses_completed} course(s) completed</li>
+      <li>🔥 ${data.streak}-day streak</li>
+      <li>⭐ ${data.xp} XP earned</li>
+    `;
+  } catch (e) {
+    console.error("Dashboard load error", e);
+  }
+}
+
+// ── Load weekly chart ───────────────────────────────────
+async function loadChart() {
+  try {
+    const res  = await fetch(`${API}/analytics/weekly`, { headers: authHeader() });
+    const data = await res.json();
+
+    new Chart(document.getElementById("chart"), {
+      type: "line",
+      data: {
+        labels: data.map(d => d.day),
+        datasets: [{ data: data.map(d => d.hours), borderColor: "#A855F7", tension: 0.4, fill: false }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+  } catch (e) {
+    console.error("Chart load error", e);
+  }
+}
+
+// ── Load enrolled courses ───────────────────────────────
+async function loadCourses() {
+  try {
+    const res     = await fetch(`${API}/courses/my`, { headers: authHeader() });
+    const courses = await res.json();
+    const box     = document.getElementById("courseContainer");
+
+    if (!courses.length) {
+      box.innerHTML = "<p class='text-gray-500 col-span-3'>No courses yet. Add one!</p>";
+      return;
+    }
+
+    box.innerHTML = courses.map(c => `
+      <div class="card bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800">
+        <h2 class="text-lg font-semibold">${c.course_title}</h2>
+        <p class="text-gray-400 text-sm">${c.level}</p>
+        <div class="bg-gray-700 h-2 mt-3 rounded">
+          <div class="bg-purple-500 h-2 rounded" style="width:${c.progress}%"></div>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">${c.progress}% complete</p>
+      </div>
+    `).join("");
+  } catch (e) {
+    console.error("Courses load error", e);
+  }
+}
+
+// ── Load user name ──────────────────────────────────────
+const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+if (savedUser.name) document.getElementById("userName").textContent = savedUser.name;
+
+// ── Add course modal ────────────────────────────────────
+function openModal()  { document.getElementById("courseModal").style.display = "flex"; }
+function closeModal() { document.getElementById("courseModal").style.display = "none"; }
+
+async function addCourse() {
+  const title = document.getElementById("courseName").value.trim();
+  const level = document.getElementById("courseLevel").value;
+  if (!title) return;
+
+  // 1. Create the course
+  const createRes = await fetch(`${API}/courses/`, {
+    method: "POST",
+    headers: { ...authHeader(), "Content-Type": "application/json" },
+    body: JSON.stringify({ title, level })
+  });
+  const course = await createRes.json();
+
+  // 2. Auto-enrol
+  await fetch(`${API}/courses/${course.id}/enrol`, { method: "POST", headers: authHeader() });
+
+  closeModal();
+  document.getElementById("courseName").value = "";
+  loadCourses();
+  loadDashboard();
+}
+
+// ── Auth helpers ────────────────────────────────────────
+function authHeader() { return { "Authorization": `Bearer ${token}` }; }
+
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  window.location.href = "login.html";
+}
+
+// ── Chatbot ─────────────────────────────────────────────
+document.getElementById("chatBtn").onclick = toggleChat;
+function toggleChat() { document.getElementById("chatBox").classList.toggle("hidden"); }
+function sendMessage() {
+  const input = document.getElementById("chatInput");
+  const chat  = document.getElementById("chatMessages");
+  if (!input.value.trim()) return;
+  chat.innerHTML += `<p class="text-purple-300">You: ${input.value}</p><p class="text-gray-400">AI: Keep going 🚀</p>`;
+  input.value = "";
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// ── Init ────────────────────────────────────────────────
+loadDashboard();
+loadChart();
+loadCourses();
+</script>
+</body>
+</html>

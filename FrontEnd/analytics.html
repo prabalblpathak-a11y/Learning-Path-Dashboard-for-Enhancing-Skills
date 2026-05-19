@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Analytics - SkillForge</title>
+<style>
+.nav-item { display:flex; gap:10px; padding:10px; border-radius:10px; transition:all 0.3s ease; }
+.nav-item:hover { background:rgba(168,85,247,0.15); color:#a855f7; transform:translateX(5px); }
+.active { background:linear-gradient(to right,#7c3aed,#ec4899); color:white !important; box-shadow:0 0 15px rgba(168,85,247,0.6); }
+</style>
+</head>
+<body class="bg-[#0F0F1A] text-white">
+<div class="flex h-screen">
+
+  <!-- Sidebar -->
+  <div class="w-64 bg-[#151528] p-6 border-r border-purple-800 flex-shrink-0">
+    <div class="flex items-center gap-3 mb-10">
+      <img src="assets/logo.png" class="w-10 h-10 rounded-full border border-purple-500">
+      <h2 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">SkillForge</h2>
+    </div>
+    <ul class="space-y-3 text-gray-400">
+      <li><a href="index.html"     class="nav-item">🏠 Dashboard</a></li>
+      <li><a href="courses.html"   class="nav-item">📚 Courses</a></li>
+      <li><a href="analytics.html" class="nav-item active">📊 Analytics</a></li>
+      <li><a href="profile.html"   class="nav-item">👤 Profile</a></li>
+      <li><a href="settings.html"  class="nav-item">⚙️ Settings</a></li>
+    </ul>
+  </div>
+
+  <!-- Main -->
+  <div class="flex-1 p-8 overflow-y-auto">
+    <h1 class="text-3xl text-purple-300 mb-6">📊 Analytics</h1>
+
+    <!-- Log hours today -->
+    <div class="bg-[#1E1E2F] p-5 rounded-2xl border border-purple-800 mb-6 flex items-center gap-4">
+      <span class="text-gray-400">Log today's study hours:</span>
+      <input id="hoursInput" type="number" min="0" max="24" step="0.5" placeholder="e.g. 1.5"
+        class="bg-black border border-purple-800 px-3 py-2 rounded w-28 focus:outline-none">
+      <button onclick="logHours()" class="bg-purple-600 px-4 py-2 rounded hover:bg-purple-700 transition">Save</button>
+      <span id="logMsg" class="text-green-400 text-sm hidden">✅ Saved!</span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+      <!-- Weekly Activity -->
+      <div class="bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800">
+        <h2 class="text-purple-300 mb-4">📅 Weekly Activity (hours)</h2>
+        <canvas id="weeklyChart"></canvas>
+      </div>
+
+      <!-- Course Progress -->
+      <div class="bg-[#1E1E2F] p-6 rounded-2xl border border-purple-800">
+        <h2 class="text-purple-300 mb-4">📚 Course Progress</h2>
+        <canvas id="courseChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API   = "http://localhost:5000/api";
+const token = localStorage.getItem("token");
+if (!token) window.location.href = "login.html";
+
+function authHeader() { return { "Authorization": `Bearer ${token}` }; }
+
+async function logHours() {
+  const hours = parseFloat(document.getElementById("hoursInput").value);
+  if (isNaN(hours) || hours < 0) return;
+
+  await fetch(`${API}/analytics/log`, {
+    method: "POST",
+    headers: { ...authHeader(), "Content-Type": "application/json" },
+    body: JSON.stringify({ hours })
+  });
+
+  const msg = document.getElementById("logMsg");
+  msg.classList.remove("hidden");
+  setTimeout(() => msg.classList.add("hidden"), 2000);
+  loadWeeklyChart();
+}
+
+async function loadWeeklyChart() {
+  const res  = await fetch(`${API}/analytics/weekly`, { headers: authHeader() });
+  const data = await res.json();
+
+  const existing = Chart.getChart("weeklyChart");
+  if (existing) existing.destroy();
+
+  new Chart(document.getElementById("weeklyChart"), {
+    type: "bar",
+    data: {
+      labels: data.map(d => d.day),
+      datasets: [{ data: data.map(d => d.hours), backgroundColor: "#A855F7", borderRadius: 6 }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+async function loadCourseChart() {
+  const res    = await fetch(`${API}/analytics/courses`, { headers: authHeader() });
+  const data   = await res.json();
+
+  const existing = Chart.getChart("courseChart");
+  if (existing) existing.destroy();
+
+  new Chart(document.getElementById("courseChart"), {
+    type: "bar",
+    data: {
+      labels: data.map(d => d.course),
+      datasets: [{ data: data.map(d => d.progress), backgroundColor: ["#A855F7","#9333EA","#7E22CE","#6B21A8","#581C87"], borderRadius: 6 }]
+    },
+    options: {
+      indexAxis: "y",
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, max: 100 } }
+    }
+  });
+}
+
+loadWeeklyChart();
+loadCourseChart();
+</script>
+</body>
+</html>
